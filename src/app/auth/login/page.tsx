@@ -5,6 +5,7 @@ import Link from "next/link";
 
 export default function LoginPage() {
   const [csrfToken, setCsrfToken] = useState("");
+  const [ready, setReady] = useState(false);
   const [error, setError] = useState("");
 
   useEffect(() => {
@@ -20,8 +21,13 @@ export default function LoginPage() {
     // 获取 CSRF token
     fetch("/api/auth/csrf")
       .then((r) => r.json())
-      .then((d) => setCsrfToken(d.csrfToken))
-      .catch(() => {});
+      .then((d) => {
+        setCsrfToken(d.csrfToken);
+        setReady(true);
+      })
+      .catch(() => {
+        setReady(true); // 即使失败也让按钮可用
+      });
   }, []);
 
   return (
@@ -70,9 +76,10 @@ export default function LoginPage() {
 
         <button
           type="submit"
-          className="w-full rounded-xl bg-indigo-600 py-2.5 text-white font-medium hover:bg-indigo-700 transition"
+          disabled={!ready}
+          className="w-full rounded-xl bg-indigo-600 py-2.5 text-white font-medium hover:bg-indigo-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
         >
-          登录
+          {ready ? "登录" : "加载中..."}
         </button>
 
         <p className="text-center text-sm text-gray-500">

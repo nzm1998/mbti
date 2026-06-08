@@ -1,0 +1,7 @@
+node_modules/
+.next/
+.env
+.env.local
+.env.production
+reasonix.toml
+next-env.d.ts

@@ -15,19 +15,24 @@ export default function LoginPage() {
     e.preventDefault();
     setError("");
 
-    const result = await signIn("credentials", {
-      email,
-      password,
-      redirect: false,
-    });
+    try {
+      const result = await signIn("credentials", {
+        email,
+        password,
+        redirect: false,
+      });
 
-    if (result?.error) {
-      setError("邮箱或密码错误");
-      return;
+      if (result?.error) {
+        setError("邮箱或密码错误");
+        return;
+      }
+
+      router.push("/topics");
+      router.refresh();
+    } catch (err) {
+      setError("登录失败，请重试");
+      console.error("Login error:", err);
     }
-
-    router.push("/topics");
-    router.refresh();
   }
 
   return (

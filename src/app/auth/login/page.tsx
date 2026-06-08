@@ -2,18 +2,23 @@
 
 import { signIn } from "next-auth/react";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { FormEvent, useState } from "react";
 import Link from "next/link";
 
 export default function LoginPage() {
   const router = useRouter();
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
   const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
 
-  async function handleSubmit(e: React.FormEvent) {
+  async function handleSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setError("");
+    setLoading(true);
+
+    const form = e.currentTarget;
+    const formData = new FormData(form);
+    const email = formData.get("email") as string;
+    const password = formData.get("password") as string;
 
     try {
       const result = await signIn("credentials", {
@@ -23,15 +28,19 @@ export default function LoginPage() {
       });
 
       if (result?.error) {
-        setError("邮箱或密码错误");
+        setError(result.error === "CredentialsSignin" ? "邮箱或密码错误" : result.error);
+        setLoading(false);
         return;
       }
 
-      router.push("/topics");
-      router.refresh();
+      if (result?.ok) {
+        router.push("/topics");
+        router.refresh();
+      }
     } catch (err) {
-      setError("登录失败，请重试");
-      console.error("Login error:", err);
+      console.error("Login caught:", err);
+      setError("网络错误，请检查连接后重试");
+      setLoading(false);
     }
   }
 
@@ -54,10 +63,9 @@ export default function LoginPage() {
             邮箱
           </label>
           <input
+            name="email"
             type="email"
             required
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
             className="w-full rounded-xl border border-gray-300 px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-indigo-500"
             placeholder="your@email.com"
           />
@@ -68,10 +76,9 @@ export default function LoginPage() {
             密码
           </label>
           <input
+            name="password"
             type="password"
             required
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
             className="w-full rounded-xl border border-gray-300 px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-indigo-500"
             placeholder="••••••••"
           />
@@ -79,9 +86,10 @@ export default function LoginPage() {
 
         <button
           type="submit"
-          className="w-full rounded-xl bg-indigo-600 py-2.5 text-white font-medium hover:bg-indigo-700 transition"
+          disabled={loading}
+          className="w-full rounded-xl bg-indigo-600 py-2.5 text-white font-medium hover:bg-indigo-700 transition disabled:opacity-50"
         >
-          登录
+          {loading ? "登录中..." : "登录"}
         </button>
 
         <p className="text-center text-sm text-gray-500">

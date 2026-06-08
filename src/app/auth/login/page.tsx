@@ -1,53 +1,34 @@
 "use client";
 
-import { signIn } from "next-auth/react";
-import { useRouter } from "next/navigation";
-import { FormEvent, useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 
 export default function LoginPage() {
-  const router = useRouter();
+  const [csrfToken, setCsrfToken] = useState("");
   const [error, setError] = useState("");
-  const [loading, setLoading] = useState(false);
 
-  async function handleSubmit(e: FormEvent<HTMLFormElement>) {
-    e.preventDefault();
-    setError("");
-    setLoading(true);
-
-    const form = e.currentTarget;
-    const formData = new FormData(form);
-    const email = formData.get("email") as string;
-    const password = formData.get("password") as string;
-
-    try {
-      const result = await signIn("credentials", {
-        email,
-        password,
-        redirect: false,
-      });
-
-      if (result?.error) {
-        setError(result.error === "CredentialsSignin" ? "邮箱或密码错误" : result.error);
-        setLoading(false);
-        return;
-      }
-
-      if (result?.ok) {
-        router.push("/topics");
-        router.refresh();
-      }
-    } catch (err) {
-      console.error("Login caught:", err);
-      setError("网络错误，请检查连接后重试");
-      setLoading(false);
+  useEffect(() => {
+    // 从 URL 读取错误信息
+    const params = new URLSearchParams(window.location.search);
+    const err = params.get("error");
+    if (err === "CredentialsSignin") {
+      setError("邮箱或密码错误");
+    } else if (err) {
+      setError("登录失败，请重试");
     }
-  }
+
+    // 获取 CSRF token
+    fetch("/api/auth/csrf")
+      .then((r) => r.json())
+      .then((d) => setCsrfToken(d.csrfToken))
+      .catch(() => {});
+  }, []);
 
   return (
     <main className="flex min-h-screen items-center justify-center p-8">
       <form
-        onSubmit={handleSubmit}
+        action="/api/auth/callback/credentials"
+        method="POST"
         className="w-full max-w-sm space-y-4 rounded-2xl bg-white p-8 shadow-sm border border-gray-200"
       >
         <h1 className="text-2xl font-bold text-center mb-2">登录</h1>
@@ -57,6 +38,9 @@ export default function LoginPage() {
             {error}
           </p>
         )}
+
+        <input type="hidden" name="csrfToken" value={csrfToken} />
+        <input type="hidden" name="callbackUrl" value="/topics" />
 
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -86,10 +70,9 @@ export default function LoginPage() {
 
         <button
           type="submit"
-          disabled={loading}
-          className="w-full rounded-xl bg-indigo-600 py-2.5 text-white font-medium hover:bg-indigo-700 transition disabled:opacity-50"
+          className="w-full rounded-xl bg-indigo-600 py-2.5 text-white font-medium hover:bg-indigo-700 transition"
         >
-          {loading ? "登录中..." : "登录"}
+          登录
         </button>
 
         <p className="text-center text-sm text-gray-500">

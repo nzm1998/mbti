@@ -1,21 +1,27 @@
-import { auth } from "@/lib/auth";
 import { NextResponse } from "next/server";
+import type { NextRequest } from "next/server";
 
-export default auth((req) => {
+const protectedPaths = ["/topics", "/mbti"];
+
+export function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
-  const protectedPaths = ["/topics", "/mbti"];
-  const isProtected = protectedPaths.some((p) => pathname.startsWith(p));
 
+  const isProtected = protectedPaths.some((p) => pathname.startsWith(p));
   if (!isProtected) return NextResponse.next();
 
-  if (!req.auth) {
+  // NextAuth v5 创建的 session cookie
+  const sessionCookie =
+    req.cookies.get("__Secure-authjs.session-token")?.value ||
+    req.cookies.get("authjs.session-token")?.value;
+
+  if (!sessionCookie) {
     const loginUrl = new URL("/auth/login", req.url);
     loginUrl.searchParams.set("callbackUrl", pathname);
     return NextResponse.redirect(loginUrl);
   }
 
   return NextResponse.next();
-});
+}
 
 export const config = {
   matcher: ["/topics/:path*", "/mbti/:path*"],

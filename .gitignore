@@ -5,6 +5,7 @@ node_modules/
 .env.production
 reasonix.toml
 next-env.d.ts
+.DS_Store
 
 # OpenNext
 .open-next

@@ -1,9 +1,14 @@
 "use client";
 
-import { useSession } from "next-auth/react";
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState, useCallback } from "react";
 import { MBTI_TYPES, getMbtiInfo } from "@/lib/mbti";
+
+interface CurrentUser {
+  id: string;
+  username: string;
+  mbtiType: string | null;
+}
 
 interface CommentUser {
   id: string;
@@ -35,8 +40,8 @@ const TOPIC_META: Record<string, { icon: string; gradient: string }> = {
 
 export default function TopicPage() {
   const { slug } = useParams<{ slug: string }>();
-  const { data: session } = useSession();
   const router = useRouter();
+  const [currentUser, setCurrentUser] = useState<CurrentUser | null>(null);
   const [topic, setTopic] = useState<Topic | null>(null);
   const [comments, setComments] = useState<Comment[]>([]);
   const [likedIds, setLikedIds] = useState<Set<string>>(new Set());
@@ -45,6 +50,19 @@ export default function TopicPage() {
   const [submitting, setSubmitting] = useState(false);
 
   const meta = TOPIC_META[slug] || { icon: "💬", gradient: "from-gray-100 to-gray-50" };
+
+  // 获取当前用户信息
+  useEffect(() => {
+    fetch("/api/me")
+      .then((r) => r.json())
+      .then((data) => {
+        if (!data.user || !data.user.mbtiType) {
+          router.replace("/");
+          return;
+        }
+        setCurrentUser(data.user);
+      });
+  }, [router]);
 
   const fetchComments = useCallback(async () => {
     if (!topic) return;
@@ -104,10 +122,6 @@ export default function TopicPage() {
     }
   }
 
-  const userMbti = session?.user?.name
-    ? undefined // We'll get it from the profile check later
-    : undefined;
-
   const remaining = 140 - newComment.length;
 
   return (
@@ -124,12 +138,19 @@ export default function TopicPage() {
               <p className="text-gray-600 text-sm">{topic?.description}</p>
             </div>
           </div>
-          <button
-            onClick={() => router.push("/topics")}
-            className="text-sm text-gray-500 hover:text-gray-700 mt-2 inline-block"
-          >
-            ← 返回话题广场
-          </button>
+          <div className="flex items-center justify-between mt-2">
+            <button
+              onClick={() => router.push("/topics")}
+              className="text-sm text-gray-500 hover:text-gray-700 inline-block"
+            >
+              ← 返回话题广场
+            </button>
+            {currentUser && (
+              <span className="text-xs text-gray-400">
+                {currentUser.username}
+              </span>
+            )}
+          </div>
         </div>
 
         {/* MBTI Filter */}

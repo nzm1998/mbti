@@ -1,25 +1,26 @@
 import { NextResponse } from "next/server";
-import { auth } from "@/lib/auth";
+import { getCurrentUser } from "@/lib/user";
 import { prisma } from "@/lib/prisma";
 
+const VALID_TYPES = [
+  "INTJ","INTP","ENTJ","ENTP","INFJ","INFP","ENFJ","ENFP",
+  "ISTJ","ISFJ","ESTJ","ESFJ","ISTP","ISFP","ESTP","ESFP",
+];
+
 export async function POST(req: Request) {
-  const session = await auth();
-  if (!session?.user?.id) {
-    return NextResponse.json({ error: "未登录" }, { status: 401 });
+  const user = await getCurrentUser();
+  if (!user) {
+    return NextResponse.json({ error: "请先设置用户名和 MBTI 类型" }, { status: 401 });
   }
 
   const { mbtiType } = await req.json();
 
-  const validTypes = [
-    "INTJ","INTP","ENTJ","ENTP","INFJ","INFP","ENFJ","ENFP",
-    "ISTJ","ISFJ","ESTJ","ESFJ","ISTP","ISFP","ESTP","ESFP",
-  ];
-  if (!validTypes.includes(mbtiType)) {
+  if (!VALID_TYPES.includes(mbtiType)) {
     return NextResponse.json({ error: "无效的 MBTI 类型" }, { status: 400 });
   }
 
   const existing = await prisma.mbtiProfile.findUnique({
-    where: { userId: session.user.id },
+    where: { userId: user.id },
   });
 
   if (existing) {
@@ -30,7 +31,7 @@ export async function POST(req: Request) {
   }
 
   await prisma.mbtiProfile.create({
-    data: { userId: session.user.id, mbtiType },
+    data: { userId: user.id, mbtiType },
   });
 
   return NextResponse.json({ success: true, mbtiType });

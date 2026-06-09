@@ -1,17 +1,11 @@
 import { prisma } from "@/lib/prisma";
 import Link from "next/link";
-import { auth } from "@/lib/auth";
+import { getCurrentUser } from "@/lib/user";
 import { redirect } from "next/navigation";
 
 export default async function TopicsPage() {
-  const session = await auth();
-  if (!session?.user?.id) redirect("/auth/login");
-
-  const profile = await prisma.mbtiProfile.findUnique({
-    where: { userId: session.user.id },
-  });
-
-  if (!profile) redirect("/mbti/select");
+  const user = await getCurrentUser();
+  if (!user?.mbtiProfile) redirect("/");
 
   const topics = await prisma.topic.findMany({
     orderBy: { sortOrder: "asc" },
@@ -34,15 +28,9 @@ export default async function TopicsPage() {
           <div>
             <h1 className="text-2xl font-bold">话题广场</h1>
             <p className="text-sm text-gray-500 mt-1">
-              {profile.mbtiType} · 看看大家在说什么
+              {user.mbtiProfile.mbtiType} · 看看大家在说什么
             </p>
           </div>
-          <Link
-            href="/auth/logout"
-            className="text-sm text-gray-500 hover:text-gray-700"
-          >
-            退出
-          </Link>
         </div>
 
         <div className="grid gap-4">

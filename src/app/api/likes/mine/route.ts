@@ -1,17 +1,14 @@
 import { NextResponse } from "next/server";
-import { auth } from "@/lib/auth";
+import { getCurrentUser } from "@/lib/user";
 import { prisma } from "@/lib/prisma";
 
 export async function GET(req: Request) {
-  const session = await auth();
-  if (!session?.user?.id) {
-    return NextResponse.json({ likedIds: [] });
-  }
+  const user = await getCurrentUser();
 
   const { searchParams } = new URL(req.url);
   const topicId = searchParams.get("topicId");
 
-  if (!topicId) {
+  if (!user || !topicId) {
     return NextResponse.json({ likedIds: [] });
   }
 
@@ -24,7 +21,7 @@ export async function GET(req: Request) {
 
   const likes = await prisma.like.findMany({
     where: {
-      userId: session.user.id,
+      userId: user.id,
       commentId: { in: commentIds },
     },
     select: { commentId: true },

@@ -1,11 +1,11 @@
 import { NextResponse } from "next/server";
-import { auth } from "@/lib/auth";
+import { getCurrentUser } from "@/lib/user";
 import { prisma } from "@/lib/prisma";
 
 export async function POST(req: Request) {
-  const session = await auth();
-  if (!session?.user?.id) {
-    return NextResponse.json({ error: "未登录" }, { status: 401 });
+  const user = await getCurrentUser();
+  if (!user) {
+    return NextResponse.json({ error: "请先设置用户名和 MBTI 类型" }, { status: 401 });
   }
 
   const { topicId, content } = await req.json();
@@ -21,7 +21,7 @@ export async function POST(req: Request) {
   const comment = await prisma.comment.create({
     data: {
       content: content.trim(),
-      userId: session.user.id,
+      userId: user.id,
       topicId,
     },
     include: {

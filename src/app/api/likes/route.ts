@@ -1,11 +1,11 @@
 import { NextResponse } from "next/server";
-import { auth } from "@/lib/auth";
+import { getCurrentUser } from "@/lib/user";
 import { prisma } from "@/lib/prisma";
 
 export async function POST(req: Request) {
-  const session = await auth();
-  if (!session?.user?.id) {
-    return NextResponse.json({ error: "未登录" }, { status: 401 });
+  const user = await getCurrentUser();
+  if (!user) {
+    return NextResponse.json({ error: "请先设置用户名和 MBTI 类型" }, { status: 401 });
   }
 
   const { commentId } = await req.json();
@@ -15,7 +15,7 @@ export async function POST(req: Request) {
   }
 
   const existing = await prisma.like.findUnique({
-    where: { userId_commentId: { userId: session.user.id, commentId } },
+    where: { userId_commentId: { userId: user.id, commentId } },
   });
 
   if (existing) {
@@ -24,7 +24,7 @@ export async function POST(req: Request) {
   }
 
   await prisma.like.create({
-    data: { userId: session.user.id, commentId },
+    data: { userId: user.id, commentId },
   });
 
   return NextResponse.json({ liked: true });
